@@ -4,7 +4,9 @@
   "description": "雪がきれい",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html",
+    "build": "parcel build index.js"
   },
   "repository": {
     "type": "git",
@@ -15,5 +17,12 @@
   "bugs": {
     "url": "https://github.com/wayne-wu/yuki/issues"
   },
-  "homepage": "https://github.com/wayne-wu/yuki#readme"
+  "homepage": "https://github.com/wayne-wu/yuki#readme",
+  "dependencies": {
+    "parcel-plugin-glslify": "^0.1.0",
+    "three": "^0.94.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.9.4"
+  }
 }
