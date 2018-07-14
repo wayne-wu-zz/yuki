@@ -8,8 +8,6 @@ import frag from '../shaders/snow.frag';
 const canvas = document.getElementById('canvas');
 const app = new SceneManager(canvas);
 
-// app.addOrbitControls();
-
 const geometry = new THREE.BoxGeometry( 1, 1, 1 );
 const material = new THREE.MeshBasicMaterial({ color: 0xff000f, wireframe: true });
 const cube = new THREE.Mesh(geometry, material);

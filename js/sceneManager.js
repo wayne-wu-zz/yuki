@@ -17,12 +17,12 @@ class SceneManager {
     this.initScene();
     this.initCamera();
     this.initRenderer();
-    // this.addOrbitControls()
-    this.controls = new OrbitController(this.camera, this.renderer.domElement);
+    this.addOrbitControls()
+    // this.controls = new OrbitController(this.camera, this.renderer.domElement);
 
     // inital resize
     this.resize();
-    //
+
     // // window event listeners
     window.addEventListener('resize', () => this.resize());
   }
@@ -39,7 +39,7 @@ class SceneManager {
       stencil: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setClearColor(0x29233b);
+    this..setClearColor(0x29233b);
 
     const dpr = Math.min(1.5, window.devicePixelRatio);
     this.renderer.setPixelRatio(dpr);
@@ -67,6 +67,9 @@ class SceneManager {
   }
   disableOrbitControls() {
     this.controls.enable = false;
+  }
+  setClearColor(hex) {
+    this.renderer.setClearColor(hex);
   }
 
   // uniforms
