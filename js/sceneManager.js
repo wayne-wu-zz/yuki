@@ -18,12 +18,11 @@ class SceneManager {
     this.initCamera();
     this.initRenderer();
     this.addOrbitControls()
-    // this.controls = new OrbitController(this.camera, this.renderer.domElement);
 
     // inital resize
     this.resize();
 
-    // // window event listeners
+    // window event listeners
     window.addEventListener('resize', () => this.resize());
   }
   animate(callback) {
