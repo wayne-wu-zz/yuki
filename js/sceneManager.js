@@ -70,11 +70,6 @@ class SceneManager {
   setClearColor(hex) {
     this.renderer.setClearColor(hex);
   }
-
-  // uniforms
-  getUTime() {
-    return (Date.now() - this.startTime) / 1000.0;
-  }
 }
 
 export default SceneManager;
