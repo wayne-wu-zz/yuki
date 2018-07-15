@@ -38,7 +38,7 @@ class SceneManager {
       stencil: false
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this..setClearColor(0x29233b);
+    this.setClearColor(0x29233b);
 
     const dpr = Math.min(1.5, window.devicePixelRatio);
     this.renderer.setPixelRatio(dpr);
@@ -46,7 +46,7 @@ class SceneManager {
   initCamera() {
     const aspectRatio = window.innerWidth / window.innerHeight;
     this.camera = new THREE.PerspectiveCamera(75, aspectRatio, 0.1, 1000);
-    this.camera.position.set(0, 1, 5);
+    this.camera.position.set(0, 0.5, 5);
   }
   initScene() {
     this.scene = new THREE.Scene();

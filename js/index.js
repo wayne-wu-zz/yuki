@@ -4,16 +4,17 @@ import SceneManager from './sceneManager.js';
 
 import vert from '../shaders/snow.vert';
 import frag from '../shaders/snow.frag';
+import Cube from './cube.js';
 
 const canvas = document.getElementById('canvas');
 const app = new SceneManager(canvas);
 
-const geometry = new THREE.BoxGeometry( 1, 1, 1 );
-const material = new THREE.MeshBasicMaterial({ color: 0xff000f, wireframe: true });
-const cube = new THREE.Mesh(geometry, material);
-app.scene.add( cube );
+const cube = new Cube(3, 2, 2);
+app.scene.add( cube.mesh );
 
 app.animate(() => {
-  cube.rotation.x += 0.01;
-  cube.rotation.y += 0.01;
+  // remove to stop animation
+  cube.updateUniforms();
+  cube.mesh.rotation.x += 0.01;
+  cube.mesh.rotation.y += 0.01;
 });
