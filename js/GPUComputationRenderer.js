@@ -97,6 +97,8 @@
  * @param {WebGLRenderer} renderer The renderer
   */
 
+ import * as THREE from 'three';
+
  function GPUComputationRenderer( sizeX, sizeY, renderer ) {
 
 	this.variables = [];
@@ -366,3 +368,4 @@
 	}
 
 }
+export default GPUComputationRenderer;
