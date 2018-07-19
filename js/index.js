@@ -10,7 +10,7 @@ const app = new SceneManager(canvas);
 
 const cube = new Cube(3, 2, 2);
 
-const snow = new Snow();
+const snow = new Snow(app.renderer);
 
 //app.scene.add( cube.mesh );
 app.scene.add( snow.mesh );
