@@ -11,7 +11,7 @@ import pVelFrag from '../shaders/pvel.frag';
 
 var WIDTH = 128;
 var HEIGHT = 128;
-var PARTICLES = WIDTH * HEIGHT;
+var PARTICLES = WIDTH * WIDTH;
 
 class Snow {
     constructor(renderer){
@@ -39,29 +39,32 @@ class Snow {
     // Initialize computation
     initComputeRenderer(){
         //console.log(this.renderer);
-        this.gpuCompute = new GPUComputationRenderer(WIDTH, HEIGHT, this.renderer);
+        this.gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, this.renderer);
 
-        // Particles
+        // Particles - prefix p
         var pPosition = this.gpuCompute.createTexture(); // particles' position data
-        //var pVelocity = this.gpuCompute.createTexture(); // particles' velocity data
+        var pVelocity = this.gpuCompute.createTexture(); // particles' velocity data
+        
         this.fillPositionTexture( pPosition ); // initial condition
-        //this.fillVelocityTexture( pVelocity ); // initial condition
+        this.fillVelocityTexture( pVelocity ); // initial condition
 
         // TODO: Grid data
+        
         this.variables.pPosition = this.gpuCompute.addVariable("texturePosition", pPosFrag, pPosition);
-        //this.variables.pVelocity = this.gpuCompute.addVariable("textureVelocity", pVelFrag, pVelocity);
+        this.variables.pVelocity = this.gpuCompute.addVariable("textureVelocity", pVelFrag, pVelocity);
 
-        this.gpuCompute.setVariableDependencies(this.variables.pPosition, [this.variables.pPosition]); // position depends on position and velocity
-        //this.gpuCompute.setVariableDependencies( this.variables.pVelocity, [this.variables.pPosition,  this.variables.pVelocity]);
+        this.gpuCompute.setVariableDependencies(this.variables.pVelocity, [this.variables.pPosition,  this.variables.pVelocity]);
+        this.gpuCompute.setVariableDependencies(this.variables.pPosition, [this.variables.pPosition, this.variables.pVelocity]); // position depends on position and velocity
+
 
         this.uniforms.pPosition = this.variables.pPosition.material.uniforms;
-        //this.uniforms.pVelocity = this.variables.pVelocity.material.uniforms;
+        this.uniforms.pVelocity = this.variables.pVelocity.material.uniforms;
 
         // Initialize uniforms
         this.uniforms.pPosition.time = { value: 0.0 };
         this.uniforms.pPosition.dt = { value: 0.0 };
 
-        // TODO: Grid data
+        this.uniforms.pVelocity.time = { value: 0.0 };
 
         var error = this.gpuCompute.init(); 
         if( error != null ){
@@ -70,28 +73,32 @@ class Snow {
     }
     
     initRenderGeometry(){
-        var points = PARTICLES; 
-
+        
         var geometry = new THREE.BufferGeometry();
 
         // Define custom vertex attributes needed in the vertex shader
-        var positions = new THREE.BufferAttribute( new Float32Array( points * 3 ), 3);
-        var sizes = new THREE.BufferAttribute( new Float32Array( points ), 1);
-        var uvs = new THREE.BufferAttribute( new Float32Array( points * 2), 2);
-        geometry.addAttribute("position", positions);
-        geometry.addAttribute("size", sizes);
-        geometry.addAttribute("reference", uvs);
+        var positions = new THREE.BufferAttribute( new Float32Array( PARTICLES * 3 ), 3);
+        var uvs = new THREE.BufferAttribute( new Float32Array( PARTICLES * 2), 2);
 
-        // TODO: Set attributes
-
-        // set uv for accessing texture in vertex shader
-        for( var i = 0; i < PARTICLES ; i++ )
-        {
-            var x = (i % WIDTH) / WIDTH;
-            var y = ~~(i / HEIGHT) / HEIGHT;
-            uvs.array[ i * 2 ] = x;
-            uvs.array[ i * 2 + 1 ] = y;
+        var p = 0;
+        for (var i = 0; i < PARTICLES; i++){
+            positions.array[ p++ ] = ( Math.random() * 2 - 1 );
+            positions.array[ p++ ] = 0;
+            positions.array[ p++ ] = ( Math.random() * 2 - 1 );
         }
+
+        p = 0;
+        for( var i = 0; i < WIDTH ; i++ )
+        {
+            for (var j = 0; j < WIDTH; j++)
+            {
+                uvs.array[ p++ ] = i / (WIDTH - 1);
+                uvs.array[ p++ ] = j / (WIDTH - 1);
+            }
+        }
+
+        geometry.addAttribute("position", positions);
+        geometry.addAttribute("uv", uvs);
 
         // Add any float textures to the render uniforms
         this.uniforms.render = {
@@ -106,14 +113,13 @@ class Snow {
             vertexShader: snowVert,
             fragmentShader: snowFrag
         });
+        material.extensions.drawBuffers = true;
 
         // Render Mesh
         //var snowMesh = new THREE.Mesh( geometry, material );
-        var snowMesh = new THREE.Points(geometry, material);
-        //snowMesh.matrixAutoUpdate = false; 
-        //snowMesh.updateMatrix();
-
-        this.mesh = snowMesh;
+        this.mesh = new THREE.Points(geometry, material);
+        this.mesh.matrixAutoUpdate = false; 
+        this.mesh.updateMatrix();
     }
 
     fillPositionTexture( texture ) {
@@ -131,6 +137,22 @@ class Snow {
             data[k + 3] = 1;
         }
     }
+
+    fillVelocityTexture( texture ) {
+        // Initialize the positions of the particles
+        var data = texture.image.data;
+        for( var k = 0, kl = data.length; k < kl; k += 4 ){
+            var x = Math.random();
+            var y = Math.random();
+            var z = Math.random();
+
+            data[k + 0] = x;
+            data[k + 1] = y;
+            data[k + 2] = z;
+            data[k + 3] = 1;
+        }
+    }
+
 
     updateComputation() {
         var now = performance.now();
@@ -159,8 +181,8 @@ class Snow {
         this.updateComputation();
 
         // update textures used in render
-        this.uniforms.render.texturePosition.texture = this.gpuCompute.getCurrentRenderTarget(this.variables.pPosition).texture;
-        //this.uniforms.render.textureVelocity.texture = this.gpuCompute.getCurrentRenderTarget(this.variables.pVelocity).texture;
+        this.uniforms.render.texturePosition.value = this.gpuCompute.getCurrentRenderTarget(this.variables.pPosition).texture;
+        this.uniforms.render.textureVelocity.value = this.gpuCompute.getCurrentRenderTarget(this.variables.pVelocity).texture;
     }
 }
 export default Snow;
