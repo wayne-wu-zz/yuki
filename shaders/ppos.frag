@@ -8,7 +8,7 @@ void main() {
     // Get position at the last timestep
     vec4 pos = texture2D( texturePosition, uv );
 
-    // Modify pos based on equations needed
+    // Do stuff to the position here
 
     // Write out the new position
     gl_FragColor = vec4( pos.xyz, 1.0 );

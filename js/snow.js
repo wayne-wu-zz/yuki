@@ -2,6 +2,7 @@
 import GPUComputationRenderer from "./GPUComputationRenderer.js";
 import * as THREE from 'three';
 
+// Import shaders
 import snowFrag from '../shaders/snow.frag';
 import snowVert from '../shaders/snow.vert';
 
@@ -9,14 +10,17 @@ import pPosFrag from '../shaders/ppos.frag';
 import pVelFrag from '../shaders/pvel.frag';
 
 
-var WIDTH = 128;
-var HEIGHT = 128;
-var PARTICLES = WIDTH * WIDTH;
+var GRIDSPACE = 0.1;
 
 class Snow {
-    constructor(renderer){
+    constructor({renderer, bbox, gridWidth}){
         this.renderer = renderer;
+        this.bbox = bbox;
+        this.gridWidth = gridWidth || 64;
+        this.particlesNum = gridWidth*gridWidth;
+
         this.gpuCompute = {};
+    
         
         //uniforms
         this.uniforms = {};
@@ -39,12 +43,12 @@ class Snow {
     // Initialize computation
     initComputeRenderer(){
         //console.log(this.renderer);
-        this.gpuCompute = new GPUComputationRenderer(WIDTH, WIDTH, this.renderer);
+        this.gpuCompute = new GPUComputationRenderer(this.gridWidth, this.gridWidth, this.renderer);
 
         // Particles - prefix p
         var pPosition = this.gpuCompute.createTexture(); // particles' position data
         var pVelocity = this.gpuCompute.createTexture(); // particles' velocity data
-        
+                
         this.fillPositionTexture( pPosition ); // initial condition
         this.fillVelocityTexture( pVelocity ); // initial condition
 
@@ -77,23 +81,23 @@ class Snow {
         var geometry = new THREE.BufferGeometry();
 
         // Define custom vertex attributes needed in the vertex shader
-        var positions = new THREE.BufferAttribute( new Float32Array( PARTICLES * 3 ), 3);
-        var uvs = new THREE.BufferAttribute( new Float32Array( PARTICLES * 2), 2);
+        var positions = new THREE.BufferAttribute( new Float32Array( this.particlesNum * 3 ), 3);
+        var uvs = new THREE.BufferAttribute( new Float32Array( this.particlesNum * 2), 2);
 
         var p = 0;
-        for (var i = 0; i < PARTICLES; i++){
+        for (var i = 0; i < this.particlesNum; i++){
             positions.array[ p++ ] = ( Math.random() * 2 - 1 );
             positions.array[ p++ ] = 0;
             positions.array[ p++ ] = ( Math.random() * 2 - 1 );
         }
 
         p = 0;
-        for( var i = 0; i < WIDTH ; i++ )
+        for( var i = 0; i < this.gridWidth; i++ )
         {
-            for (var j = 0; j < WIDTH; j++)
+            for (var j = 0; j < this.gridWidth; j++)
             {
-                uvs.array[ p++ ] = i / (WIDTH - 1);
-                uvs.array[ p++ ] = j / (WIDTH - 1);
+                uvs.array[ p++ ] = i / (this.gridWidth - 1);
+                uvs.array[ p++ ] = j / (this.gridWidth - 1);
             }
         }
 
@@ -116,20 +120,20 @@ class Snow {
         material.extensions.drawBuffers = true;
 
         // Render Mesh
-        //var snowMesh = new THREE.Mesh( geometry, material );
-        this.mesh = new THREE.Points(geometry, material);
+        this.mesh = new THREE.Points( geometry, material );
         this.mesh.matrixAutoUpdate = false; 
         this.mesh.updateMatrix();
     }
 
     fillPositionTexture( texture ) {
         // Initialize the positions of the particles
-        var BOUNDS = 800;
+        var min = this.bbox.min;
+        var max = this.bbox.max;
         var data = texture.image.data;
         for( var k = 0, kl = data.length; k < kl; k += 4 ){
-            var x = Math.random() * BOUNDS - BOUNDS/2;
-            var y = Math.random() * BOUNDS - BOUNDS/2; 
-            var z = Math.random() * BOUNDS - BOUNDS/2;
+            var x = THREE.Math.mapLinear(Math.random(), 0, 1, min.x, max.x);
+            var y = THREE.Math.mapLinear(Math.random(), 0, 1, min.y, max.y);
+            var z = THREE.Math.mapLinear(Math.random(), 0, 1, min.z, max.z);
 
             data[k + 0] = x;
             data[k + 1] = y;
