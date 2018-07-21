@@ -14,15 +14,14 @@ class Cube {
   }
   init(lengthX, lengthY, lengthZ) {
     this.geometry = new THREE.BoxGeometry(lengthX, lengthY, lengthZ);
-    this.material = new THREE.RawShaderMaterial({
-      uniforms: {
-        uTime: { value: this.getUTime() },
-        uResolution: { value: new THREE.Vector2() },
-      },
-      vertexShader: vert,
-      fragmentShader: frag,
+    this.material = new THREE.MeshBasicMaterial({
+      wireframe: true
     });
     this.mesh = new THREE.Mesh(this.geometry, this.material);
+  }
+  getBoundingBox() {
+    const bbox = new THREE.Box3();
+    return bbox.setFromObject(this.mesh);
   }
   // uniforms
   updateUniforms() {
