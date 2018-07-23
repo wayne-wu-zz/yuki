@@ -8,20 +8,23 @@ import Snow from './snow.js';
 const canvas = document.getElementById('canvas');
 const app = new SceneManager(canvas);
 
-const cube = new Cube(4, 2, 4);
+const cubeConfig = {
+  dimmensions: { x: 4, y: 2, z: 4 },
+};
+const cube = new Cube(cubeConfig);
 
-const snow = new Snow({
+const snowConfig = {
   renderer: app.renderer,
   bbox: cube.getBoundingBox(),
-  gridWidth: 64
-});
+  gridWidth: 64,
+};
+const snow = new Snow(snowConfig);
 
 app.scene.add( cube.mesh );
 app.scene.add( snow.mesh );
 
 app.animate(() => {
-  
+
   snow.update();
 
 });
-
