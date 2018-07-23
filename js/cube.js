@@ -4,16 +4,17 @@ import vert from '../shaders/snow.vert';
 import frag from '../shaders/snow.frag';
 
 class Cube {
-  constructor(lengthX = 1, lengthY = 1, lengthZ = 1) {
+  constructor(config) {
     this.geometry = {};
     this.material = {};
     this.mesh = {};
     this.startTime = Date.now();
 
-    this.init(lengthX, lengthY, lengthZ);
+    this.init(config.dimmensions);
   }
-  init(lengthX, lengthY, lengthZ) {
-    this.geometry = new THREE.BoxGeometry(lengthX, lengthY, lengthZ);
+  init(dimmensions) {
+    const { x, y, z } = dimmensions;
+    this.geometry = new THREE.BoxGeometry(x, y, z);
     this.material = new THREE.MeshBasicMaterial({
       wireframe: true
     });
