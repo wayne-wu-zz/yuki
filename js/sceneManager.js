@@ -70,6 +70,14 @@ class SceneManager {
   setClearColor(hex) {
     this.renderer.setClearColor(hex);
   }
+  createGridHelper(size = 10, divisions = 10) {
+    const gridHelper = new THREE.GridHelper(size, divisions);
+    this.scene.add(gridHelper);
+  }
+  createAxisHelper(size = 5) {
+    const axisHelper = new THREE.AxisHelper(5);
+    this.scene.add(axisHelper);
+  }
 }
 
 export default SceneManager;
