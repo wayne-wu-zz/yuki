@@ -8,9 +8,14 @@ import snowVert from '../shaders/snow.vert';
 
 import pPosFrag from '../shaders/ppos.frag';
 import pVelFrag from '../shaders/pvel.frag';
+import pDefGradientFrag from '../shaders/pdefgradient.frag';
+
+import gForceFrag from '../shaders/gforce.frag';
+import gVelFrag from '../shaders/gvel.frag';
+import gVel2Frag from '../shaders/gvel2.frag';
 
 
-var GRIDSPACE = 0.1;
+var GRIDSIZE = 0.1;
 
 class Snow {
     constructor({renderer, bbox, gridWidth}){
@@ -26,6 +31,10 @@ class Snow {
         this.uniforms = {};
 
         this.variables = {};
+
+        this.shaders = {};
+        this.rendertargets = {};
+        this.textures = {};
 
         this.mesh;
 
@@ -46,25 +55,65 @@ class Snow {
         this.gpuCompute = new GPUComputationRenderer(this.gridWidth, this.gridWidth, this.renderer);
 
         // Particles - prefix p
-        var pPosition = this.gpuCompute.createTexture(); // particles' position data
-        var pVelocity = this.gpuCompute.createTexture(); // particles' velocity data
-                
-        this.fillPositionTexture( pPosition ); // initial condition
-        this.fillVelocityTexture( pVelocity ); // initial condition
-
-        // TODO: Grid data
+        var tex = this.textures;
         
-        this.variables.pPosition = this.gpuCompute.addVariable("texturePosition", pPosFrag, pPosition);
-        this.variables.pVelocity = this.gpuCompute.addVariable("textureVelocity", pVelFrag, pVelocity);
+        tex.pPosition = this.gpuCompute.createTexture(); // particles' position data + volume
+        tex.pVelocity = this.gpuCompute.createTexture(); // particles' velocity data + mass
+        tex.pDefGradient = this.createTexture( this.gridWidth, 3*this.gridWidth );
+       
+        // Grid - prefix g
+        var size = this.bbox.getSize();
+        var xNum = size.x / GRIDSIZE;
+        var yNum = size.y / GRIDSIZE;
+        var zNum = size.z / GRIDSIZE;
+        var texSizeX = xNum * Math.ceil(Math.sqrt(zNum));
+        var texSizeY = yNum * Math.ceil(Math.sqrt(zNum));
+        tex.gVelocity = this.createTexture( texSizeX, texSizeY );
+        tex.gForce = this.createTexture( texSizeX, texSizeY ); 
 
-        this.gpuCompute.setVariableDependencies(this.variables.pVelocity, [this.variables.pPosition,  this.variables.pVelocity]);
+        this.fillPositionTexture( tex.pPosition ); // initial condition
+        this.fillVelocityTexture( tex.pVelocity ); // initial condition
+        this.fillDeformationGradient( tex.pDefGradient );
+
+        var shaders = this.shaders;
+        var rt = this.rendertargets;
+
+        shaders.gVelShader = this.gpuCompute.createShaderMaterial( gVelFrag, { 
+            pPosTexture : { value: null },
+            pVelTexture : { value: null }
+        } );
+        rt.gVelRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
+                
+        shaders.gForceShader = this.gpuCompute.createShaderMaterial( gForceFrag, {
+            pPosTexture : { value: null }, 
+            pDefGradientTexture : { value: null }
+        } );
+        rt.gForceRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
+
+        shaders.gVel2Shader = this.gpuCompute.createShaderMaterial( gVel2Frag, {
+            gVelTexture : { value: null },
+            gForceTexture : { value: null }
+        })
+        rt.gVel2RT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
+
+        shaders.pDefGradientShader = this.gpuCompute.createShaderMaterial( pDefGradientFrag, {
+            gVelTexture : { value: null },
+            pPosTexture: { value: null },
+            pDefGradientTexture : { value: null }
+        })
+        rt.pDefGradRT = this.gpuCompute.createRenderTarget( this.gridWidth, 3*this.gridWidth );
+
+        this.variables.pPosition = this.gpuCompute.addVariable("pPosTexture", pPosFrag, tex.pPosition);
+        this.variables.pVelocity = this.gpuCompute.addVariable("pVelTexture", pVelFrag, tex.pVelocity);
+
+        this.gpuCompute.setVariableDependencies(this.variables.pVelocity, [this.variables.pPosition]);
         this.gpuCompute.setVariableDependencies(this.variables.pPosition, [this.variables.pPosition, this.variables.pVelocity]); // position depends on position and velocity
-
 
         this.uniforms.pPosition = this.variables.pPosition.material.uniforms;
         this.uniforms.pVelocity = this.variables.pVelocity.material.uniforms;
 
         // Initialize uniforms
+        this.uniforms.pVelocity.gVelTexture = { value: null };
         this.uniforms.pPosition.time = { value: 0.0 };
         this.uniforms.pPosition.dt = { value: 0.0 };
 
@@ -75,7 +124,41 @@ class Snow {
             console.error( error );
         }
     }
+
+    compute(){
+
+        // Read: Update textures (data)
+        this.shaders.gVelShader.uniforms.pPosTexture = this.textures.pPosition;
+        this.shaders.gVelShader.uniforms.pVelTexture = this.textures.pVelocity;
+        // Write
+        this.gpuCompute.renderTexture(this.textures.gVelocity, this.rendertargets.gVelRT);
+
+        this.shaders.gForceShader.uniforms.pPosTexture = this.textures.pPosition;
+        this.shaders.gForceShader.uniforms.pDefGradientTexture = this.textures.pDefGradient;
+        this.gpuCompute.renderTexture(this.textures.gForce, this.rendertargets.gForceRT);
+
+        this.shaders.gVel2Shader.uniforms.gVelTexture = this.textures.gVelocity;
+        this.shaders.gVel2Shader.uniforms.gForceTexture = this.textures.gForce;
+        this.gpuCompute.renderTexture(this.textures.gVelocity, this.rendertargets.gVel2RT);
+
+        this.shaders.pDefGradientShader.uniforms.gVelTexture = this.textures.gVelocity;
+        this.shaders.pDefGradientShader.uniforms.pPosTexture = this.textures.pPosition;
+        this.shaders.pDefGradientShader.uniforms.pDefGradientTexture = this.textures.pDefGradient;
+        this.gpuCompute.renderTexture(this.textures.pDefGradient, this.rendertargets.pDefGradRT);
+
+        // Update uniforms for pPosition, pVelocity
+        this.uniforms.pVelocity.gVelTexture = this.textures.gVelocity;
+
+        this.gpuCompute.compute();
+    }
     
+    createTexture( sizeX, sizeY ){
+        var a = new Float32Array( sizeX * sizeY * 4 );
+		var texture = new THREE.DataTexture( a, sizeX, sizeY, THREE.RGBAFormat, THREE.FloatType );
+		texture.needsUpdate = true;
+        return texture;
+    }
+
     initRenderGeometry(){
         
         var geometry = new THREE.BufferGeometry();
@@ -157,6 +240,24 @@ class Snow {
         }
     }
 
+    fillDeformationGradient( texture ){
+        var data = texture.image.data;
+        var n = this.particlesNum;
+        for( var k = 0, kl = n; k < kl; k ++){
+            data[k + 0] = 1;
+            data[k + 1] = 0;
+            data[k + 2] = 0;
+            data[k + 3] = 1;
+            data[k + n - 1 + 0] = 0;
+            data[k + n - 1 + 1] = 1;
+            data[k + n - 1 + 2] = 0;
+            data[k + n - 1 + 3] = 1;
+            data[k + 2*n - 1 + 0] = 0;
+            data[k + 2*n - 1 + 1] = 0;
+            data[k + 2*n - 1 + 2] = 1;
+            data[k + 2*n - 1 + 3] = 1;
+        }
+    }
 
     updateComputation() {
         var now = performance.now();
@@ -182,7 +283,7 @@ class Snow {
     }
 
     update() {
-        this.updateComputation();
+        this.compute();
 
         // update textures used in render
         this.uniforms.render.texturePosition.value = this.gpuCompute.getCurrentRenderTarget(this.variables.pPosition).texture;
