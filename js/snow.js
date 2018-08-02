@@ -25,7 +25,6 @@ class Snow {
         this.particlesNum = gridWidth*gridWidth;
 
         this.gpuCompute = {};
-    
         
         //uniforms
         this.uniforms = {};
@@ -59,8 +58,13 @@ class Snow {
         
         tex.pPosition = this.gpuCompute.createTexture(); // particles' position data + volume
         tex.pVelocity = this.gpuCompute.createTexture(); // particles' velocity data + mass
-        tex.pDefGradient = this.createTexture( this.gridWidth, 3*this.gridWidth );
-       
+        
+        // Each row of the matrix will be stored as one texture
+        // tex.pDefGradient1 = this.gpuCompute.createTexture();
+        // tex.pDefGradient2 = this.gpuCompute.createTexture();
+        // tex.pDefGradient3 = this.gpuCompute.createTexture();
+        tex.pDefGradient = this.gpuCompute.createTexture(this.gridWidth, 3* this.gridWidth);
+
         // Grid - prefix g
         var size = this.bbox.getSize();
         var xNum = size.x / GRIDSIZE;
@@ -82,25 +86,23 @@ class Snow {
             pPosTexture : { value: null },
             pVelTexture : { value: null }
         } );
-        rt.gVelRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
-                
         shaders.gForceShader = this.gpuCompute.createShaderMaterial( gForceFrag, {
             pPosTexture : { value: null }, 
             pDefGradientTexture : { value: null }
         } );
-        rt.gForceRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
-
         shaders.gVel2Shader = this.gpuCompute.createShaderMaterial( gVel2Frag, {
             gVelTexture : { value: null },
             gForceTexture : { value: null }
         })
-        rt.gVel2RT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
-
         shaders.pDefGradientShader = this.gpuCompute.createShaderMaterial( pDefGradientFrag, {
             gVelTexture : { value: null },
             pPosTexture: { value: null },
             pDefGradientTexture : { value: null }
         })
+
+        rt.gVelRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
+        rt.gForceRT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
+        rt.gVel2RT = this.gpuCompute.createRenderTarget( texSizeX, texSizeY );
         rt.pDefGradRT = this.gpuCompute.createRenderTarget( this.gridWidth, 3*this.gridWidth );
 
         this.variables.pPosition = this.gpuCompute.addVariable("pPosTexture", pPosFrag, tex.pPosition);
@@ -130,21 +132,24 @@ class Snow {
         // Read: Update textures (data)
         this.shaders.gVelShader.uniforms.pPosTexture = this.textures.pPosition;
         this.shaders.gVelShader.uniforms.pVelTexture = this.textures.pVelocity;
-        // Write
-        this.gpuCompute.renderTexture(this.textures.gVelocity, this.rendertargets.gVelRT);
+        this.gpuCompute.doRenderTarget( this.shaders.gVelShader, this.rendertargets.gVelRT);
+        this.textures.gVelocity = this.rendertargets.gVelRT.texture;
 
         this.shaders.gForceShader.uniforms.pPosTexture = this.textures.pPosition;
         this.shaders.gForceShader.uniforms.pDefGradientTexture = this.textures.pDefGradient;
-        this.gpuCompute.renderTexture(this.textures.gForce, this.rendertargets.gForceRT);
+        this.gpuCompute.doRenderTarget( this.textures.gForce, this.rendertargets.gForceRT );
+        this.textures.gForce = this.rendertargets.gForceRT.texture;
 
         this.shaders.gVel2Shader.uniforms.gVelTexture = this.textures.gVelocity;
         this.shaders.gVel2Shader.uniforms.gForceTexture = this.textures.gForce;
         this.gpuCompute.renderTexture(this.textures.gVelocity, this.rendertargets.gVel2RT);
+        this.textures.gVelocity = this.rendertargets.gVel2RT.texture;
 
         this.shaders.pDefGradientShader.uniforms.gVelTexture = this.textures.gVelocity;
         this.shaders.pDefGradientShader.uniforms.pPosTexture = this.textures.pPosition;
         this.shaders.pDefGradientShader.uniforms.pDefGradientTexture = this.textures.pDefGradient;
         this.gpuCompute.renderTexture(this.textures.pDefGradient, this.rendertargets.pDefGradRT);
+        this.textures.pDefGradient = this.rendertargets.pDefGradRT.texture;
 
         // Update uniforms for pPosition, pVelocity
         this.uniforms.pVelocity.gVelTexture = this.textures.gVelocity;

@@ -6,9 +6,7 @@ void main() {
     vec2 uv = gl_FragCoord.xy / resolution.xy;
 
     // Get position at the last timestep
-    vec4 pos = texture2D( texturePosition, uv );
-
-    // Do stuff to the position here
+    vec4 pos = texture2D( pPosTexture, uv );
 
     // Write out the new position
     gl_FragColor = vec4( pos.xyz, 1.0 );
