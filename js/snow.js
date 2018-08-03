@@ -115,11 +115,12 @@ class Snow {
         this.uniforms.pVelocity = this.variables.pVelocity.material.uniforms;
 
         // Initialize uniforms
-        this.uniforms.pVelocity.gVelTexture = { value: null };
-        this.uniforms.pPosition.time = { value: 0.0 };
+        this.uniforms.pVelocity.gVelTexture = { value: null }
+        this.uniforms.pVelocity.dt = { value: 0.0 };
+
         this.uniforms.pPosition.dt = { value: 0.0 };
 
-        this.uniforms.pVelocity.time = { value: 0.0 };
+        this.uniforms.gVelFrag.gridSize = { valeu: 0.0 };
 
         var error = this.gpuCompute.init(); 
         if( error != null ){
@@ -234,9 +235,9 @@ class Snow {
         // Initialize the positions of the particles
         var data = texture.image.data;
         for( var k = 0, kl = data.length; k < kl; k += 4 ){
-            var x = Math.random();
-            var y = Math.random();
-            var z = Math.random();
+            var x = 0;//Math.random();
+            var y = 0;//Math.random();
+            var z = 0;//Math.random();
 
             data[k + 0] = x;
             data[k + 1] = y;
@@ -265,7 +266,7 @@ class Snow {
     }
 
     updateComputation() {
-        var now = performance.now();
+        this.now = performance.now();
         var delta = (this.now - this.last) / 1000;
 
         if (delta > 1) delat = 1;
@@ -273,6 +274,9 @@ class Snow {
 
         this.uniforms.pPosition.time.value = this.now;
         this.uniforms.pPosition.dt.value = delta;
+
+        this.uniforms.pVelocity.time.value = this.now;
+        this.uniforms.pVelocity.dt.value = delta;
 
         // Runs the computation with the update information
         this.gpuCompute.compute();

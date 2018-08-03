@@ -1,4 +1,3 @@
-uniform float time;
 uniform float dt;
 
 void main() {
