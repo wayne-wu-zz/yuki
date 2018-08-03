@@ -11,7 +11,7 @@ void main() {
 
     vec2 uv = gl_FragCoord.xy / resolution.xy;
     
-    vec3 vel = texture2D ( pVelTexture, uv ).xyz;
+    vec3 vel = texture2D ( pPosTexture, uv ).xyz;
 
     // Do stuff here to the velocity
     

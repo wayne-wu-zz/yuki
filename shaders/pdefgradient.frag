@@ -1,4 +1,6 @@
 
+uniform sampler2D gVelTexture;
+uniform sampler2D pPosTexture;
 uniform sampler2D pDefGradientTexture;
 
 void main() {
